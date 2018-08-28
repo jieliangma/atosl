@@ -1447,6 +1447,12 @@ int select_thin_macho_by_arch(struct target_file *tf, const char *target_arch){
                    }
                    break;
                }
+           case CPU_TYPE_ARM64:
+                switch (thin_macho->cpusubtype) {
+                    case CPU_SUBTYPE_ARM64_ALL:
+                    arch = "arm64";
+                }
+               break;
            case CPU_TYPE_I386:
                //i386
                arch = "i386";
@@ -2037,8 +2043,26 @@ static char * read_attribute_value (struct attribute *attr, unsigned int form, c
             info_ptr += bytes_read;
             info_ptr = read_attribute_value (attr, form, info_ptr, cu);
             break;
+        case DW_FORM_sec_offset:
+            if (cu->header.addr_size == 8) {
+                attr->u.addr = cu->header.offset + read_8_bytes(info_ptr);
+                info_ptr += 8;
+            } else if (cu->header.addr_size == 4) {
+                attr->u.addr = cu->header.offset + read_4_bytes(info_ptr);
+                info_ptr += 4;
+            } else {
+                assert(0);
+            }
+            break;
+        case DW_FORM_exprloc:
+            break;
+        case DW_FORM_flag_present:
+            attr->u.addr = 1;
+            break;
+        case DW_FORM_ref_sig8:
+            break;
         default:
-            fprintf(stderr, "Dwarf Error: Cannot handle  in DWARF reader [in module s]");
+            fprintf(stderr, "Dwarf Error: Cannot handle  in DWARF reader [in module s]\n");
             //   dwarf_form_name (form),
             //   bfd_get_filename (abfd));
     }
@@ -2367,8 +2391,8 @@ static int parse_dwarf_abbrev(struct dwarf2_per_objfile *dwarf2_per_objfile){
         ai->has_children = (unsigned short)has_children;
         ai->num_attrs = (unsigned short)num_attr_spec_pair;
         ai->next = NULL;
-        //printf("%s\t", dwarf_tag_name(ai->tag));
-        //printf("num_attr_spec_pair: %d\n", num_attr_spec_pair);
+//        printf("%s\t", dwarf_tag_name(ai->tag));
+//        printf("num_attr_spec_pair: %d\n", num_attr_spec_pair);
         if (num_attr_spec_pair != 0){
             struct attr_abbrev *attrs = malloc(num_attr_spec_pair * sizeof(struct attr_abbrev));
             memset(attrs, '\0', num_attr_spec_pair * sizeof(struct attr_abbrev));
@@ -2729,13 +2753,14 @@ int lookup_by_address_in_dwarf(struct thin_macho *thin_macho, CORE_ADDR integer_
     struct arange *target_arange = NULL;
     struct address_range_descriptor *target_ard = NULL;
     unsigned int i = 0, j = 0;
+//    printf("lookup_by_address_in_dwarf(0x%016llx)\n", address);
     for(i = 0; i< num; i++){
         struct arange *arange = all_aranges[i];
         for(j = 0; j < arange->num_of_ards; j++){
             //debug
             CORE_ADDR beginning_addr = arange->address_range_descriptors[j].beginning_addr;
             CORE_ADDR ending_addr = arange->address_range_descriptors[j].beginning_addr + arange->address_range_descriptors[j].length;
-            //printf("0x%016llx + 0x%016llx = 0x%016llx\n", arange->address_range_descriptors[j].beginning_addr, arange->address_range_descriptors[j].length, arange->address_range_descriptors[j].beginning_addr + arange->address_range_descriptors[j].length);
+//            printf("0x%016llx + 0x%016llx = 0x%016llx\n", beginning_addr, arange->address_range_descriptors[j].length, ending_addr);
             if (address >= beginning_addr && address < ending_addr){
                 target_arange = arange;
                 target_ard = &arange->address_range_descriptors[j];

@@ -303,6 +303,9 @@
 #define CPU_SUBTYPE_ARM_V7K		((cpu_subtype_t) 12) /* Kirkwood40 */
 #define CPU_SUBTYPE_ARM_V8		((cpu_subtype_t) 13)
 
+#define CPU_TYPE_ARM64 ((cpu_type_t)16777228)
+#define CPU_SUBTYPE_ARM64_ALL ((cpu_subtype_t)0)
+
 #endif /* !__ASSEMBLER__ */
 
 /*
